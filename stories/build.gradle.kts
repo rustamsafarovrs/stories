@@ -43,7 +43,7 @@ afterEvaluate {
                 from(components.getByName("release"))
                 groupId = "com.github.rustamsafarovrs"
                 artifactId = "stories"
-                version = "1.0.0"
+                version = "1.1.0"
             }
         }
     }

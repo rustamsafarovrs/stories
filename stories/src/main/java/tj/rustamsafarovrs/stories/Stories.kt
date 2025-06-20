@@ -20,11 +20,33 @@ import kotlinx.coroutines.delay
 @Composable
 fun Stories(
     model: StoriesModel,
+    controller: StoriesController = remember { StoriesController() },
     didFinish: () -> Unit = {},
 ) {
     var current by remember { mutableStateOf(model.slides[0]) }
     var progress by remember { mutableLongStateOf(0L) }
     var slideState by remember { mutableStateOf<SlideState>(SlideState.Play) }
+
+    LaunchedEffect(Unit) {
+        controller.next = {
+            val next = model.getNext(current)
+            if (next != null) {
+                current = next
+            } else {
+                didFinish.invoke()
+            }
+        }
+
+        controller.previous = {
+            val previous = model.getPrevious(current)
+            if (previous != null) {
+                current = previous
+            }
+        }
+
+        controller.play = { slideState = SlideState.Play }
+        controller.pause = { slideState = SlideState.Pause }
+    }
 
     LaunchedEffect(current) {
         progress = 0L
@@ -35,12 +57,7 @@ fun Stories(
             }
         }
         if (progress >= model.config.slideDurationMs) {
-            val next = model.slides.indexOf(current) + 1
-            if (next < model.slides.size) {
-                current = model.slides[next]
-            } else {
-                didFinish()
-            }
+            controller.goNext()
         }
     }
 
@@ -56,10 +73,10 @@ fun Stories(
             currentIndex = model.slides.indexOf(current),
             max = model.slides.size,
             config = model.config,
-            previousClicked = { current = model.getPrevious(current)!! },
-            nextClicked = { current = model.getNext(current)!! },
-            playClicked = { slideState = SlideState.Play },
-            pauseClicked = { slideState = SlideState.Pause },
+            previousClicked = { controller.goPrevious() },
+            nextClicked = { controller.goNext() },
+            playClicked = { controller.doPlay() },
+            pauseClicked = { controller.doPause() },
         )
         current.overlay()
     }

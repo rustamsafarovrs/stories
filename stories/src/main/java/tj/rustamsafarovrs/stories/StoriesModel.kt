@@ -23,7 +23,7 @@ data class StoriesModel(
 
     fun getNext(current: Slide): Slide? {
         val index = slides.indexOf(current)
-        if (index < 0 || index >= slides.size) {
+        if (index < 0 || index >= slides.size - 1) {
             return null
         }
         return slides[index + 1]
