@@ -10,7 +10,8 @@ import androidx.compose.runtime.Composable
 
 data class StoriesModel(
     val slides: List<Slide>,
-    val config: StoriesDefaults = StoriesDefaults()
+    val config: StoriesDefaults = StoriesDefaults(),
+    val initialSlideIndex: Int = 0,
 ) {
 
     fun getPrevious(current: Slide): Slide? {

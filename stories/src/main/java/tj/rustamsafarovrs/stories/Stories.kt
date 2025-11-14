@@ -23,7 +23,7 @@ fun Stories(
     controller: StoriesController = remember { StoriesController() },
     didFinish: () -> Unit = {},
 ) {
-    var current by remember { mutableStateOf(model.slides[0]) }
+    var current by remember { mutableStateOf(model.slides[model.initialSlideIndex]) }
     var progress by remember { mutableLongStateOf(0L) }
     var slideState by remember { mutableStateOf<SlideState>(SlideState.Play) }
 

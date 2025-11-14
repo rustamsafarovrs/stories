@@ -57,7 +57,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun ContentUI() {
     var showingStories by remember { mutableStateOf(false) }
-    var controller = remember { StoriesController() }
+    val controller = remember { StoriesController() }
 
     Box(Modifier.fillMaxSize()) {
         if (showingStories) {
