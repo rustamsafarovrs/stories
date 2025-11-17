@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "tj.rustamsafarovrs.stories"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         minSdk = 24
@@ -43,7 +43,7 @@ afterEvaluate {
                 from(components.getByName("release"))
                 groupId = "com.github.rustamsafarovrs"
                 artifactId = "stories"
-                version = "1.2.0"
+                version = "1.3.0"
             }
         }
     }
