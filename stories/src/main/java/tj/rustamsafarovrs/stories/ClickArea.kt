@@ -61,7 +61,7 @@ internal fun ClickArea(
                             }
                             previousClicked.invoke()
                         } else {
-                            if (currentIndex >= max - 1) {
+                            if (currentIndex > max - 1) {
                                 return@detectTapGestures
                             }
                             nextClicked.invoke()
