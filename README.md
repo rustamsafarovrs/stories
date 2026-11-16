@@ -182,6 +182,7 @@ data class StoriesDefaults(
 ### Tap Navigation
 - **Left side tap**: Go to previous slide
 - **Right side tap**: Go to next slide
+- **Right side tap on the last slide**: Finish stories
 - **Tap and hold**: Pause story progression
 
 ### Gesture Controls

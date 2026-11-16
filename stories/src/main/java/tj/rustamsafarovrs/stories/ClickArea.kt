@@ -4,11 +4,10 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
-import kotlinx.coroutines.delay
-import kotlin.coroutines.cancellation.CancellationException
-import kotlin.random.Random
 
 /**
  * Created by Rustam Safarov on 6/19/25.
@@ -17,57 +16,58 @@ import kotlin.random.Random
 
 @Composable
 internal fun ClickArea(
-    currentIndex: Int,
-    max: Int,
     config: StoriesDefaults,
+    isPlaying: Boolean,
     previousClicked: () -> Unit,
     nextClicked: () -> Unit,
     playClicked: () -> Unit,
     pauseClicked: () -> Unit,
 ) {
-    var pauseTriggered = false
+    val latestConfig by rememberUpdatedState(config)
+    val latestIsPlaying by rememberUpdatedState(isPlaying)
+    val latestPreviousClicked by rememberUpdatedState(previousClicked)
+    val latestNextClicked by rememberUpdatedState(nextClicked)
+    val latestPlayClicked by rememberUpdatedState(playClicked)
+    val latestPauseClicked by rememberUpdatedState(pauseClicked)
+
     Box(
         Modifier
             .fillMaxSize()
-            .pointerInput(currentIndex) {
+            .pointerInput(Unit) {
+                var resumeAfterLongPress = false
+
                 detectTapGestures(
                     onPress = {
-                        if (config.clickToPauseEnabled == false) {
-                            return@detectTapGestures
-                        }
-                        val released = try {
-                            delay(Random.nextInt(150, 300).toLong())
-                            pauseClicked.invoke()
-                            pauseTriggered = true
+                        val wasPlaying = latestIsPlaying
+                        try {
                             tryAwaitRelease()
-                        } catch (_: CancellationException) {
-                            false
+                        } finally {
+                            if (resumeAfterLongPress) {
+                                resumeAfterLongPress = false
+                                if (wasPlaying) latestPlayClicked()
+                            }
                         }
-                        if (released) {
-                            playClicked.invoke()
-                        }
-                        pauseTriggered = false
                     },
-                    onTap = {
-                        if (config.clickToChangeEnabled == false) {
+                    onLongPress = {
+                        // A hold pauses only active playback. A manually paused story
+                        // must remain paused after the pointer is released.
+                        if (latestConfig.clickToPauseEnabled && latestIsPlaying) {
+                            resumeAfterLongPress = true
+                            latestPauseClicked()
+                        }
+                    },
+                    onTap = { offset ->
+                        if (!latestConfig.clickToChangeEnabled) {
                             return@detectTapGestures
                         }
-                        if (pauseTriggered) {
-                            return@detectTapGestures
-                        }
-                        if (it.x < size.width / 2) {
-                            if (currentIndex == 0) {
-                                return@detectTapGestures
-                            }
-                            previousClicked.invoke()
+
+                        if (offset.x < size.width / 2) {
+                            latestPreviousClicked()
                         } else {
-                            if (currentIndex > max - 1) {
-                                return@detectTapGestures
-                            }
-                            nextClicked.invoke()
+                            latestNextClicked()
                         }
                     },
                 )
-            }
+            },
     )
 }

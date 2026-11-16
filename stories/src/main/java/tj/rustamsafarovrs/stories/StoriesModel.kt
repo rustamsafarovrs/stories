@@ -13,32 +13,55 @@ data class StoriesModel(
     val config: StoriesDefaults = StoriesDefaults(),
     val initialSlideIndex: Int = 0,
 ) {
-
-    fun getPrevious(current: Slide): Slide? {
-        val index = slides.indexOf(current)
-        if (index <= 0 || index > slides.size) {
-            return null
+    init {
+        require(slides.isNotEmpty()) { "StoriesModel must contain at least one slide." }
+        require(initialSlideIndex in slides.indices) {
+            "initialSlideIndex must be a valid index in slides."
         }
-        return slides[slides.indexOf(current) - 1]
+        require(config.slideDurationMs > 0L) {
+            "slideDurationMs must be greater than zero."
+        }
+    }
+
+    /**
+     * Returns the previous slide index, or null when [currentIndex] is invalid
+     * or already points to the first slide.
+     */
+    fun getPreviousIndex(currentIndex: Int): Int? =
+        if (currentIndex in slides.indices) currentIndex.takeIf { it > 0 }?.minus(1) else null
+
+    /**
+     * Returns the next slide index, or null when [currentIndex] is invalid
+     * or already points to the last slide.
+     */
+    fun getNextIndex(currentIndex: Int): Int? =
+        if (currentIndex in slides.indices) (currentIndex + 1).takeIf { it in slides.indices } else null
+
+    /**
+     * Compatibility helpers for callers that navigate by slide instance.
+     * Identity is checked first so equal slides at different positions remain distinguishable.
+     */
+    fun getPrevious(current: Slide): Slide? {
+        val index = indexOf(current)
+        return if (index >= 0) slides.getOrNull(index - 1) else null
     }
 
     fun getNext(current: Slide): Slide? {
-        val index = slides.indexOf(current)
-        if (index < 0 || index >= slides.size - 1) {
-            return null
-        }
-        return slides[index + 1]
+        val index = indexOf(current)
+        return if (index >= 0) slides.getOrNull(index + 1) else null
+    }
+
+    private fun indexOf(current: Slide): Int {
+        val identityIndex = slides.indexOfFirst { it === current }
+        return if (identityIndex >= 0) identityIndex else slides.indexOf(current)
     }
 
     data class Slide(
         val background: Background,
-        val overlay: @Composable () -> Unit = {}
+        val overlay: @Composable () -> Unit = {},
     ) {
-
         sealed class Background {
-
             data class Drawable(@DrawableRes val id: Int) : Background()
-
             data class Url(val url: String) : Background()
         }
     }

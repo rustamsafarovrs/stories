@@ -27,4 +27,11 @@ class StoriesController {
     fun doPause() {
         pause?.invoke()
     }
+
+    internal fun clearCallbacks() {
+        next = null
+        previous = null
+        play = null
+        pause = null
+    }
 }

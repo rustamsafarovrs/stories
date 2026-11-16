@@ -3,8 +3,11 @@ package tj.rustamsafarovrs.stories
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -23,56 +26,64 @@ fun Stories(
     controller: StoriesController = remember { StoriesController() },
     didFinish: () -> Unit = {},
 ) {
-    var current by remember { mutableStateOf(model.slides[model.initialSlideIndex]) }
-    var progress by remember { mutableLongStateOf(0L) }
-    var slideState by remember { mutableStateOf<SlideState>(SlideState.Play) }
+    var currentIndex by remember(model) {
+        mutableIntStateOf(model.initialSlideIndex)
+    }
+    var progress by remember(model, currentIndex) {
+        mutableLongStateOf(0L)
+    }
+    var slideState by remember(controller) {
+        mutableStateOf<SlideState>(SlideState.Play)
+    }
 
-    LaunchedEffect(Unit) {
+    // Keep callbacks connected to the latest state without capturing stale values.
+    SideEffect {
         controller.next = {
-            val next = model.getNext(current)
-            if (next != null) {
-                current = next
+            val nextIndex = model.getNextIndex(currentIndex)
+            if (nextIndex != null) {
+                currentIndex = nextIndex
             } else {
-                didFinish.invoke()
+                didFinish()
             }
         }
-
         controller.previous = {
-            val previous = model.getPrevious(current)
-            if (previous != null) {
-                current = previous
-            }
+            model.getPreviousIndex(currentIndex)?.let { currentIndex = it }
         }
-
         controller.play = { slideState = SlideState.Play }
         controller.pause = { slideState = SlideState.Pause }
     }
 
-    LaunchedEffect(current) {
-        progress = 0L
-        while (progress < model.config.slideDurationMs) {
-            delay(50L)
-            if (slideState == SlideState.Play) {
-                progress = progress + 50L
+    // A controller can outlive this composition; never leave callbacks pointing at it.
+    DisposableEffect(controller) {
+        onDispose { controller.clearCallbacks() }
+    }
+
+    LaunchedEffect(model, currentIndex, slideState) {
+        if (slideState == SlideState.Play) {
+            val duration = model.config.slideDurationMs
+            while (progress < duration) {
+                val elapsed = minOf(50L, duration - progress)
+                delay(elapsed)
+                progress = (progress + elapsed).coerceAtMost(duration)
             }
-        }
-        if (progress >= model.config.slideDurationMs) {
             controller.goNext()
         }
     }
+
+    val current = model.slides[currentIndex]
 
     Box(Modifier.fillMaxSize()) {
         Background(current, model.config)
         ProgressIndicators(
             count = model.slides.size,
-            currentIndex = model.slides.indexOf(current),
-            progress = (progress.toFloat() * 100 / model.config.slideDurationMs.toFloat()) / 100,
+            currentIndex = currentIndex,
+            progress = (progress.toFloat() / model.config.slideDurationMs.toFloat())
+                .coerceIn(0f, 1f),
             config = model.config,
         )
         ClickArea(
-            currentIndex = model.slides.indexOf(current),
-            max = model.slides.size,
             config = model.config,
+            isPlaying = slideState == SlideState.Play,
             previousClicked = { controller.goPrevious() },
             nextClicked = { controller.goNext() },
             playClicked = { controller.doPlay() },
